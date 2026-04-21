@@ -180,7 +180,7 @@ export default {
 					],
 					structuredContent: {decks, username}
 				}
-			};
+			},
 		);
 
 		// open deck
