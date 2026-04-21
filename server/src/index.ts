@@ -20,21 +20,15 @@ const WIDGET_URI = 'ui://flashcards-widget';
 
 const cardSchema = z.object({
 	front: z.string().describe('The question or prompt'),
-								back: z.string().describe('The answer'),
-								hint: z.string().describe('A hint for the card'),
-								status: z.enum(['new', 'learning', 'mastered']).readonly().default('new'),
+	back: z.string().describe('The answer'),
+	hint: z.string().describe('A hint for the card'),
+	status: z.enum(['new', 'learning', 'mastered']).readonly().default('new'),
 });
 
 const deckSchema = z.object({
 	title: z.string().describe("The title of the deck. e.g 'React Fundamentals'"),
-					description: z.string().describe('Brief description of what this deck covers.'),
-					cards: z
-						.array(
-							cardSchema
-						)
-						.min(10)
-						.max(20)
-						.describe('Arrary of flashcards (aim for 20)'),
+	description: z.string().describe('Brief description of what this deck covers.'),
+	cards: z.array(cardSchema).min(10).max(20).describe('Arrary of flashcards (aim for 20)'),
 });
 
 type Deck = z.infer<typeof deckSchema>;
@@ -84,7 +78,7 @@ export default {
 			and back (answer) with a hint as well. Ask the user for their username before using this tool`,
 				inputSchema: {
 					username: z.string().describe("The user's username. Ask for this before using the tool"),
-					deck: deckSchema
+					deck: deckSchema,
 				},
 				annotations: {
 					readOnlyHint: false,
@@ -95,7 +89,7 @@ export default {
 					},
 				},
 			},
-			async ({ deck: {title, description, cards}, username }) => {
+			async ({ deck: { title, description, cards }, username }) => {
 				const cardsWithIds = cards.map((card, index) => ({
 					id: `card-${Date.now()}-${index}`,
 					...card,
@@ -150,16 +144,15 @@ export default {
 				},
 			},
 			async ({ username }) => {
-				
 				const decksKey = `user:${username}:decks`;
 
 				const deckIds = await env.FLASHCARDS_KV.get<string[]>(decksKey, 'json');
 
 				if (!deckIds || deckIds.length === 0) {
 					return {
-						content: [{ text: 'You have no decks', type: 'text'}],
-						structuredContent: { decks: []}
-					}
+						content: [{ text: 'You have no decks', type: 'text' }],
+						structuredContent: { decks: [] },
+					};
 				}
 
 				const decks = [];
@@ -168,28 +161,108 @@ export default {
 					const deck = await env.FLASHCARDS_KV.get<Deck>(`user:${username}:deck:${deckId}`, 'json');
 					if (deck) {
 						const masteredCount = deck.cards.filter((card) => card.status === 'mastered').length;
-						decks.push({masteredCount, ...deck});
+						decks.push({ masteredCount, ...deck });
 					}
 				}
 				return {
 					content: [
 						{
 							type: 'text',
-							text: `Found a total of ${decks.length} ${JSON.stringify(decks)}`
-						}
+							text: `Found a total of ${decks.length} ${JSON.stringify(decks)}`,
+						},
 					],
-					structuredContent: {decks, username}
-				}
+					structuredContent: { decks, username },
+				};
 			},
 		);
 
 		// open deck
+		registerAppTool(
+			server,
+			'open-deck',
+			{
+				title: 'Open Deck',
+				description: `Use this to opena a deck for a user to study. Ask the user for their username before using this tool if you dont know it. Make sure you also have the deck id.`,
+				inputSchema: {
+					username: z.string().describe("The user's username. Ask for this before using the tool"),
+					deckId: z.string().describe("The ID of the deck. You can get it using the `list-decks` tool'"),
+				},
+				annotations: {
+					readOnlyHint: true,
+				},
+				_meta: {
+					ui: {
+						resourceUri: WIDGET_URI,
+					},
+				},
+			},
+			async ({ username, deckId }) => {
+				const decksKey = `user:${username}:deck:${deckId}`;
+
+				const deck = await env.FLASHCARDS_KV.get<Deck>(decksKey, 'json');
+
+				if (!deck) {
+					return {
+						content: [{ text: 'Deck not found', type: 'text' }],
+						structuredContent: { decks: [] },
+					};
+				}
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: `Stuyding ${deck.title} with ${deck.description} opened. ${deck.cards}`,
+						},
+					],
+					structuredContent: { deck, username, deckId },
+				};
+			},
+		);
 
 		// mark card (private)
 
 		// reset deck (private)
 
 		// delete deck
+		registerAppTool(
+			server,
+			'delete-deck',
+			{
+				title: 'Delete Deck',
+				description: `Use this to delete a deck. Ask the user for their username before using this tool if you dont know it. Make sure you also have the deck id.'`,
+				inputSchema: {
+					username: z.string().describe("The user's username. Ask for this before using the tool"),
+					deckId: z.string().describe("The ID of the deck. You can get it using the `list-decks` tool'"),
+				},
+				annotations: {
+					destructiveHint: true,
+				},
+				_meta: {},
+			},
+			async ({ username, deckId }) => {
+				const deckKey = `user:${username}:deck:${deckId}`;
+
+				const deck = await env.FLASHCARDS_KV.get<Deck>(deckKey, 'json');
+
+				if (!deck) {
+					return {
+						content: [{ text: 'Deck not found', type: 'text' }],
+					};
+				}
+
+				await env.FLASHCARDS_KV.delete(deckKey);
+
+				return {
+					content: [
+						{
+							type: 'text',
+							text: `Deck deleted`,
+						},
+					],
+				};
+			},
+		);
 
 		// @ts-ignore
 		const handler = createMcpHandler(server);
