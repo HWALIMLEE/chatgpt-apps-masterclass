@@ -256,16 +256,16 @@ function StudyScreen({
     if (!app || isMarking) return;
     setIsMarking(true);
     try {
-      const result = await app.callServerTool({
+      await app.callServerTool({
         name: "mark-card",
         arguments: { username, deckId, cardId: card.id, status },
       });
-      if (!result.isError && result.structuredContent) {
-        const updated = (result.structuredContent as { deck: Deck }).deck;
-        onStudyUpdate(updated);
-      }
     } finally {
       setIsMarking(false);
+      onStudyUpdate({
+        ...deck,
+        cards: deck.cards.map((c) => (c.id === card.id ? { ...c, status } : c)),
+      });
       if (currentIndex < cards.length - 1) {
         setCurrentIndex(currentIndex + 1);
       }
