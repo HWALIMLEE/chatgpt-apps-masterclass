@@ -201,26 +201,30 @@ function FlashCard({
         )}
         {flipped && (
           <div className="flex gap-2">
-            <Button
-              color="warning"
-              variant="soft"
-              size="sm"
-              block
-              disabled={isMarking}
-              onClick={() => onMark("learning")}
-            >
-              Still Learning
-            </Button>
-            <Button
-              color="success"
-              variant="solid"
-              size="sm"
-              block
-              disabled={isMarking}
-              onClick={() => onMark("mastered")}
-            >
-              Mastered ✓
-            </Button>
+            <div className="flex-1">
+              <Button
+                color="warning"
+                variant="soft"
+                size="sm"
+                block
+                disabled={isMarking}
+                onClick={() => onMark("learning")}
+              >
+                Still Learning
+              </Button>
+            </div>
+            <div className="flex-1">
+              <Button
+                color="success"
+                variant="solid"
+                size="sm"
+                block
+                disabled={isMarking}
+                onClick={() => onMark("mastered")}
+              >
+                Mastered ✓
+              </Button>
+            </div>
           </div>
         )}
       </div>
