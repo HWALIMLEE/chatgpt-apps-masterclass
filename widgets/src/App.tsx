@@ -2,7 +2,9 @@ import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import { LoadingIndicator } from "@openai/apps-sdk-ui/components/Indicator";
 import { Button } from "@openai/apps-sdk-ui/components/Button";
 import { Badge } from "@openai/apps-sdk-ui/components/Badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const STORAGE_KEY = "flashcards-view";
 
 type CardStatus = "new" | "learning" | "mastered";
 
@@ -382,7 +384,20 @@ function StudyScreen({
 }
 
 function App() {
-  const [view, setView] = useState<View>(null);
+  const [view, setView] = useState<View>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? (JSON.parse(saved) as View) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (view) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(view)); } catch {}
+    }
+  }, [view]);
 
   const { app } = useApp({
     appInfo: { name: "Flashcards Client", version: "1.0" },
