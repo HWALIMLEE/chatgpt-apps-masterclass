@@ -85,7 +85,7 @@ function DeckCard({ deck, onStudy }: { deck: Deck; onStudy: () => void }) {
   );
 }
 
-function DeckListScreen({ view }: { view: DeckListView }) {
+function DeckListScreen({ view, onStudy }: { view: DeckListView; onStudy: (deck: Deck) => void }) {
   if (view.decks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-10 px-4 text-center">
@@ -113,9 +113,7 @@ function DeckListScreen({ view }: { view: DeckListView }) {
           <DeckCard
             key={deck.id}
             deck={deck}
-            onStudy={() => {
-              // Open deck via ChatGPT conversation
-            }}
+            onStudy={() => onStudy(deck)}
           />
         ))}
       </div>
@@ -432,7 +430,14 @@ function App() {
   }
 
   if (view.type === "list") {
-    return <DeckListScreen view={view} />;
+    return (
+      <DeckListScreen
+        view={view}
+        onStudy={(deck) =>
+          setView({ type: "study", deck, username: view.username, deckId: deck.id })
+        }
+      />
+    );
   }
 
   return (
